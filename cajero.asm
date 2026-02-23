@@ -1,0 +1,21 @@
+; cajero.asm - prueba mínima 32-bit NASM Linux (WSL)
+
+section .data
+    msg db "Cajero: ejecutando OK", 0xA
+    len equ $ - msg
+
+section .text
+    global _start
+
+_start:
+    ; write(1, msg, len)
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, msg
+    mov edx, len
+    int 0x80
+
+    ; exit(0)
+    mov eax, 1
+    xor ebx, ebx
+    int 0x80
