@@ -18,7 +18,7 @@ section .text
     global _start       ; Punto de entrada para el enlazador (linker)
 
 _start:
-    ; --- PASO 1: Escribir el mensaje en pantalla ---
+    
     ; Usamos la llamada al sistema 'sys_write' (número 4)
     mov eax, 4          ; ID de la syscall sys_write
     mov ebx, 1          ; File Descriptor: 1 es la salida estándar (STDOUT)
@@ -26,8 +26,8 @@ _start:
     mov edx, len        ; Cuántos caracteres queremos imprimir
     int 0x80            ; Llamada al kernel (Interrupción 80h)
 
-    ; --- PASO 2: Salir del programa limpiamente ---
+
     ; Usamos la llamada al sistema 'sys_exit' (número 1)
     mov eax, 1          ; ID de la syscall sys_exit
     mov ebx, 0          ; Código de retorno (0 significa "todo bien")
-    int 0x80            ; Llamada al kernel
+    int 0x80            ; Llamada al kernel hola
