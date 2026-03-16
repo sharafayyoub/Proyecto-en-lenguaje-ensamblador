@@ -15,6 +15,14 @@ menu_len equ $ - menu_principal
 opcion db 'Introduce una opcion: '
 opcion_len equ $ - opcion
 
+msg_inicio db 'Has elegido Inicio', 10
+msg_inicio_len equ $ - msg_inicio
+
+msg_saldo db 'Has elegido Consultar saldo', 10
+msg_saldo_len equ $ - msg_saldo
+
+msg_ingreso db 'Has elegido Ingresar dinero', 10
+msg_ingreso_len equ $ - msg_ingreso
 
 section .bss
 num1 resb 3
@@ -37,6 +45,7 @@ mov eax,sys_write
 mov ebx,1
 mov ecx,opcion
 mov edx,opcion_len      ;para imprimir selecciona opcion
+int 0x80 
 
 mov eax,sys_read
 mov ebx,0
@@ -44,11 +53,48 @@ mov ecx,num1
 mov edx,3
 int 0x80            ; para que pueda introducir numero
 
+cmp byte [num1], '1'
+je opcion_inicio        ; comparar primer caracter introducido con '1'
 
+cmp byte [num1], '2'
+je opcion_saldo         ; comparar opcion 2
+
+cmp byte [num1], '3'
+je opcion_ingreso       ; comparar opcion 3
+
+; si no es 1, salir directamente
+jmp salir
+
+
+opcion_inicio:
+mov eax, sys_write
+mov ebx, 1
+mov ecx, msg_inicio
+mov edx, msg_inicio_len
+int 0x80
+jmp salir
+
+opcion_saldo:
+mov eax, sys_write
+mov ebx, 1
+mov ecx, msg_saldo
+mov edx, msg_saldo_len
+int 0x80
+jmp salir
+
+opcion_ingreso:
+mov eax, sys_write
+mov ebx, 1
+mov ecx, msg_ingreso
+mov edx, msg_ingreso_len
+int 0x80
+jmp salir
+
+
+salir:
 mov eax, sys_exit
 mov ebx, 0
-int 0x80                ;el exit 
-
+int 0x80
 
 
 
