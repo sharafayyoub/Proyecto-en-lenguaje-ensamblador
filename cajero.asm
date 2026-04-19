@@ -16,28 +16,29 @@ menu_len equ $ - menu_principal
 opcion db 'Introduce una opcion: '
 opcion_len equ $ - opcion
 
-msg_inicio   db 'Has elegido Inicio', 10
+msg_inicio     db 'Has elegido Inicio', 10
 msg_inicio_len equ $ - msg_inicio
 
-msg_saldo    db 'Has elegido Consultar saldo', 10
-msg_saldo_len equ $ - msg_saldo
+msg_saldo_txt     db 'Saldo actual: '
+msg_saldo_txt_len equ $ - msg_saldo_txt
 
-msg_ingreso  db 'Has elegido Ingresar dinero', 10
+msg_ingreso     db 'Has elegido Ingresar dinero', 10
 msg_ingreso_len equ $ - msg_ingreso
 
-msg_retiro   db 'Has elegido Retirar dinero', 10
+msg_retiro     db 'Has elegido Retirar dinero', 10
 msg_retiro_len equ $ - msg_retiro
 
-msg_pin      db 'Has elegido Configurar PIN', 10
+msg_pin     db 'Has elegido Configurar PIN', 10
 msg_pin_len equ $ - msg_pin
 
-msg_invalida db 'Opcion no valida', 10
+msg_invalida     db 'Opcion no valida', 10
 msg_invalida_len equ $ - msg_invalida
 
 section .bss
-num1       resb 3
+num1        resb 3
 num_ingreso resb 3
 num_retiro  resb 2
+saldo_buf   resb 3
 
 section .text
 global _start
@@ -97,9 +98,27 @@ opcion_inicio:
 opcion_saldo:
     mov eax, sys_write
     mov ebx, 1
-    mov ecx, msg_saldo
-    mov edx, msg_saldo_len
+    mov ecx, msg_saldo_txt
+    mov edx, msg_saldo_txt_len
     int 0x80
+
+    mov al, [saldo]
+    mov ah, 0
+    mov bl, 10
+    div bl
+
+    add al, '0'
+    add ah, '0'
+    mov [saldo_buf],   al
+    mov [saldo_buf+1], ah
+    mov byte [saldo_buf+2], 10
+
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, saldo_buf
+    mov edx, 3
+    int 0x80
+
     jmp menu_loop
 
 opcion_ingreso:
@@ -138,7 +157,6 @@ salir:
     mov eax, sys_exit
     mov ebx, 0
     int 0x80
-
 
 
 
