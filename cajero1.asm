@@ -22,8 +22,11 @@ msg_inicio_len equ $ - msg_inicio
 msg_saldo_txt     db 'Saldo actual: '
 msg_saldo_txt_len equ $ - msg_saldo_txt
 
-msg_ingreso     db 'Has elegido Ingresar dinero', 10
-msg_ingreso_len equ $ - msg_ingreso
+msg_ingresar_txt     db 'Cantidad a ingresar: '
+msg_ingresar_txt_len equ $ - msg_ingresar_txt
+
+msg_ingreso_ok     db 'Ingreso OK', 10
+msg_ingreso_ok_len equ $ - msg_ingreso_ok
 
 msg_retiro     db 'Has elegido Retirar dinero', 10
 msg_retiro_len equ $ - msg_retiro
@@ -122,11 +125,44 @@ opcion_saldo:
     jmp menu_loop
 
 opcion_ingreso:
+    ; Imprimir "Cantidad a ingresar"
     mov eax, sys_write
     mov ebx, 1
-    mov ecx, msg_ingreso
-    mov edx, msg_ingreso_len
+    mov ecx, msg_ingresar_txt
+    mov edx, msg_ingresar_txt_len
     int 0x80
+
+    ; Leer cantidad
+    mov eax, sys_read
+    mov ebx, 0
+    mov ecx, num_ingreso
+    mov edx, 3
+    int 0x80
+
+    ; Convertir ASCII a número (atoi simple, máximo 2 cifras)
+    mov al, [num_ingreso]
+    sub al, '0'             ; primer dígito
+    mov bl, 10
+    mul bl                  ; al = primer dígito * 10
+
+    mov bl, [num_ingreso+1]
+    cmp bl, 10              ; comprobar si es Enter (solo 1 dígito)
+    je un_digito_ingreso
+
+    sub bl, '0'             ; segundo dígito
+    add al, bl              ; al = total
+
+un_digito_ingreso:
+    ; Sumar al saldo
+    add [saldo], al
+
+    ; Imprimir confirmación
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_ingreso_ok
+    mov edx, msg_ingreso_ok_len
+    int 0x80
+
     jmp menu_loop
 
 opcion_retiro:
@@ -157,6 +193,5 @@ salir:
     mov eax, sys_exit
     mov ebx, 0
     int 0x80
-
 
 
