@@ -5,6 +5,8 @@ sys_write equ 4
 section .data
 saldo db 50
 
+pin db '1', '2', '3', '4'     ; PIN actual (4 dígitos, comparable byte a byte)
+
 menu_principal db '1) Inicio', 10
                db '2) Consultar saldo', 10
                db '3) Ingresar dinero', 10
@@ -37,8 +39,20 @@ msg_retiro_ok_len equ $ - msg_retiro_ok
 msg_fondos     db 'Fondos insuficientes', 10
 msg_fondos_len equ $ - msg_fondos
 
-msg_pin     db 'Has elegido Configurar PIN', 10
-msg_pin_len equ $ - msg_pin
+msg_pin_actual_txt     db 'PIN actual: '
+msg_pin_actual_txt_len equ $ - msg_pin_actual_txt
+
+msg_pin_nuevo_txt     db 'Nuevo PIN: '
+msg_pin_nuevo_txt_len equ $ - msg_pin_nuevo_txt
+
+msg_pin_ok     db 'PIN actualizado', 10
+msg_pin_ok_len equ $ - msg_pin_ok
+
+msg_pin_error     db 'PIN incorrecto', 10
+msg_pin_error_len equ $ - msg_pin_error
+
+msg_pin_bloqueado     db 'Demasiados intentos fallidos', 10
+msg_pin_bloqueado_len equ $ - msg_pin_bloqueado
 
 msg_invalida     db 'Opcion no valida', 10
 msg_invalida_len equ $ - msg_invalida
@@ -48,6 +62,8 @@ num1        resb 3
 num_ingreso resb 3
 num_retiro  resb 3
 saldo_buf   resb 3
+pin_buf     resb 6             ; 4 dígitos + Enter + margen
+intentos    resb 1             ; contador de intentos fallidos
 
 section .text
 global _start
@@ -276,11 +292,103 @@ fondos_insuficientes:
     jmp menu_loop
 
 opcion_pin:
+    ; Resetear contador de intentos a 0 al entrar
+    mov byte [intentos], 0
+
+pin_pedir:
+    ; Imprimir "PIN actual: "
     mov eax, sys_write
     mov ebx, 1
-    mov ecx, msg_pin
-    mov edx, msg_pin_len
+    mov ecx, msg_pin_actual_txt
+    mov edx, msg_pin_actual_txt_len
     int 0x80
+
+    ; Leer PIN introducido (4 dígitos + Enter = 5 bytes)
+    mov eax, sys_read
+    mov ebx, 0
+    mov ecx, pin_buf
+    mov edx, 6
+    int 0x80
+
+    ; Comparar byte a byte con el PIN almacenado
+    mov al, [pin_buf]
+    cmp al, [pin]
+    jne pin_incorrecto
+
+    mov al, [pin_buf+1]
+    cmp al, [pin+1]
+    jne pin_incorrecto
+
+    mov al, [pin_buf+2]
+    cmp al, [pin+2]
+    jne pin_incorrecto
+
+    mov al, [pin_buf+3]
+    cmp al, [pin+3]
+    jne pin_incorrecto
+
+    ; PIN correcto — pedir nuevo PIN
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_pin_nuevo_txt
+    mov edx, msg_pin_nuevo_txt_len
+    int 0x80
+
+    ; Leer nuevo PIN en pin_buf
+    mov eax, sys_read
+    mov ebx, 0
+    mov ecx, pin_buf
+    mov edx, 6
+    int 0x80
+
+    ; Guardar nuevo PIN byte a byte en pin
+    mov al, [pin_buf]
+    mov [pin], al
+
+    mov al, [pin_buf+1]
+    mov [pin+1], al
+
+    mov al, [pin_buf+2]
+    mov [pin+2], al
+
+    mov al, [pin_buf+3]
+    mov [pin+3], al
+
+    ; Imprimir "PIN actualizado"
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_pin_ok
+    mov edx, msg_pin_ok_len
+    int 0x80
+
+    jmp menu_loop
+
+pin_incorrecto:
+    ; Imprimir "PIN incorrecto"
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_pin_error
+    mov edx, msg_pin_error_len
+    int 0x80
+
+    ; Incrementar contador de intentos
+    inc byte [intentos]
+
+    ; ¿Llegamos a 3 intentos?
+    cmp byte [intentos], 3
+    jae pin_bloqueado
+
+    ; Todavía quedan intentos — volver a pedir
+    jmp pin_pedir
+
+pin_bloqueado:
+    ; Imprimir "Demasiados intentos fallidos"
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_pin_bloqueado
+    mov edx, msg_pin_bloqueado_len
+    int 0x80
+
     jmp menu_loop
 
 opcion_invalida:
