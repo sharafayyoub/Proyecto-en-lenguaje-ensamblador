@@ -28,8 +28,14 @@ msg_ingresar_txt_len equ $ - msg_ingresar_txt
 msg_ingreso_ok     db 'Ingreso OK', 10
 msg_ingreso_ok_len equ $ - msg_ingreso_ok
 
-msg_retiro     db 'Has elegido Retirar dinero', 10
-msg_retiro_len equ $ - msg_retiro
+msg_retirar_txt     db 'Cantidad a retirar: '
+msg_retirar_txt_len equ $ - msg_retirar_txt
+
+msg_retiro_ok     db 'Retiro OK', 10
+msg_retiro_ok_len equ $ - msg_retiro_ok
+
+msg_fondos     db 'Fondos insuficientes', 10
+msg_fondos_len equ $ - msg_fondos
 
 msg_pin     db 'Has elegido Configurar PIN', 10
 msg_pin_len equ $ - msg_pin
@@ -40,7 +46,7 @@ msg_invalida_len equ $ - msg_invalida
 section .bss
 num1        resb 3
 num_ingreso resb 3
-num_retiro  resb 2
+num_retiro  resb 3
 saldo_buf   resb 3
 
 section .text
@@ -163,14 +169,110 @@ un_digito_ingreso:
     mov edx, msg_ingreso_ok_len
     int 0x80
 
+    ; Imprimir saldo actualizado
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_saldo_txt
+    mov edx, msg_saldo_txt_len
+    int 0x80
+
+    mov al, [saldo]
+    mov ah, 0
+    mov bl, 10
+    div bl
+
+    add al, '0'
+    add ah, '0'
+    mov [saldo_buf],   al
+    mov [saldo_buf+1], ah
+    mov byte [saldo_buf+2], 10
+
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, saldo_buf
+    mov edx, 3
+    int 0x80
+
     jmp menu_loop
 
 opcion_retiro:
+    ; Imprimir "Cantidad a retirar"
     mov eax, sys_write
     mov ebx, 1
-    mov ecx, msg_retiro
-    mov edx, msg_retiro_len
+    mov ecx, msg_retirar_txt
+    mov edx, msg_retirar_txt_len
     int 0x80
+
+    ; Leer cantidad
+    mov eax, sys_read
+    mov ebx, 0
+    mov ecx, num_retiro
+    mov edx, 3
+    int 0x80
+
+    ; Convertir ASCII a número (atoi simple, máximo 2 cifras)
+    mov al, [num_retiro]
+    sub al, '0'             ; primer dígito
+    mov bl, 10
+    mul bl                  ; al = primer dígito * 10
+
+    mov bl, [num_retiro+1]
+    cmp bl, 10              ; comprobar si es Enter (solo 1 dígito)
+    je un_digito_retiro
+
+    sub bl, '0'             ; segundo dígito
+    add al, bl              ; al = total
+
+un_digito_retiro:
+    ; Comparar con saldo
+    mov bl, [saldo]
+    cmp al, bl              ; cantidad > saldo?
+    ja fondos_insuficientes
+
+    ; Restar del saldo
+    sub [saldo], al
+
+    ; Imprimir "Retiro OK"
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_retiro_ok
+    mov edx, msg_retiro_ok_len
+    int 0x80
+
+    ; Imprimir saldo actualizado
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_saldo_txt
+    mov edx, msg_saldo_txt_len
+    int 0x80
+
+    mov al, [saldo]
+    mov ah, 0
+    mov bl, 10
+    div bl
+
+    add al, '0'
+    add ah, '0'
+    mov [saldo_buf],   al
+    mov [saldo_buf+1], ah
+    mov byte [saldo_buf+2], 10
+
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, saldo_buf
+    mov edx, 3
+    int 0x80
+
+    jmp menu_loop
+
+fondos_insuficientes:
+    ; Imprimir "Fondos insuficientes"
+    mov eax, sys_write
+    mov ebx, 1
+    mov ecx, msg_fondos
+    mov edx, msg_fondos_len
+    int 0x80
+
     jmp menu_loop
 
 opcion_pin:
@@ -193,5 +295,4 @@ salir:
     mov eax, sys_exit
     mov ebx, 0
     int 0x80
-
 
